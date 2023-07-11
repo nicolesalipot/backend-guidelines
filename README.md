@@ -14,12 +14,11 @@
 *  **Onboarding**
 
 # Principle
----
+
 # PSR-12: Extended Coding Style
 
 The key words **"MUST"**, **"MUST NOT"**, **"REQUIRED"**, **"SHALL"**, **"SHALL NOT"**, **"SHOULD"**, **"SHOULD NOT"**, **"RECOMMENDED"**, **"MAY"**, and **"OPTIONAL"** in this document are to be interpreted as described in [RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
----
 
 #### <span style="color:green">Basic Coding Standard</span>
 
@@ -716,7 +715,5 @@ $instance = new class extends \Foo implements
     // Class content
 };
 ```
-
----
 
 # Do's and Dont's
