@@ -4,7 +4,7 @@
 ## Contents
 * #### **PHP**
     * [Principles](php/principle.md)
-    * [PSR-12: Extended Coding Style](php/guideline.md)
+    * [PSR-12: Extended Coding Style](php/psr.md)
     * [Do's and Dont's](php/dos_and_dont.md)
 *  **Testing**
 *  **Git**
