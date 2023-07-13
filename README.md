@@ -18,8 +18,7 @@
 # Principles
 
 ## SOLID
-
-**Single Responsibility Principle (SRP)**
+#### <span style="color:green">Single Responsibility Principle (SRP)</span>
 
 As stated in Clean Code, "**There should never be more than one reason for a class to change**". It's tempting to jam-pack a class with a lot of functionality, like when you can only take one suitcase on your flight. The issue with this is that your class won't be conceptually cohesive and it will give it many reasons to change. Minimizing the amount of times you need to change a class is important. It's important because if too much functionality is in one class and you modify a piece of it, it can be difficult to understand how that will affect other dependent modules in your codebase.
 
@@ -87,8 +86,7 @@ class UserSettings
     }
 }
 ```
-
-**Open/Closed Principle (OCP)**
+#### <span style="color:green">Open/Closed Principle (OCP)</span>
 
 As stated by Bertrand Meyer, "software entities (classes, modules, functions, etc.) should be **open for extension, but closed for modification**." What does that mean though? This principle basically states that you should allow users to add new functionalities without changing existing code.
 
@@ -196,8 +194,7 @@ class HttpRequester
     }
 }
 ```
-
-**Liskov Substitution Principle (LSP)**
+#### <span style="color:green">Liskov Substitution Principle (LSP)</span>
 
 This is a scary term for a very simple concept. It's formally defined as "If S is a subtype of T, then objects of type T may be replaced with objects of type S (i.e., objects of type S may substitute objects of type T) without altering any of the desirable properties of that program (correctness, task performed, etc.)." That's an even scarier definition.
 
@@ -312,8 +309,7 @@ foreach ($shapes as $shape) {
     printArea($shape);
 }
 ```
-
-**Interface Segregation Principle (ISP)**
+#### <span style="color:green">Interface Segregation Principle (ISP)</span>
 
 ISP states that "Clients should not be forced to depend upon interfaces that they do not use."
 
@@ -397,8 +393,7 @@ class RobotEmployee implements Workable
     }
 }
 ```
-
-**Dependency Inversion Principle (DIP)**
+#### <span style="color:green">Dependency Inversion Principle (DIP)</span>
 
 This principle states two essential things:
 
