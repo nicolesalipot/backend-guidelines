@@ -717,3 +717,662 @@ $instance = new class extends \Foo implements
 ```
 
 # Do's and Dont's
+
+#### <span style="color:green">Variables</span>
+
+**Bad:**
+
+```
+$ymdstr = $moment->format('y-m-d');
+```
+
+**Good:**
+
+```
+$currentDate = $moment->format('y-m-d');
+```
+
+#### <span style="color:green">Use the same vocabulary for the same type of variable</span>
+
+**Bad:**
+
+```
+getUserInfo();
+getUserData();
+getUserRecord();
+getUserProfile();
+```
+
+**Good:**
+
+```
+getUser();
+```
+
+#### <span style="color:green">Use searchable names</span>
+
+**Bad:**
+
+```
+class User
+{
+    // What the heck is 7 for?
+    public $access = 7;
+}
+
+// What the heck is 4 for?
+if ($user->access & 4) {
+    // ...
+}
+
+// What's going on here?
+$user->access ^= 2;
+```
+
+**Good:**
+
+```
+class User
+{
+    public const ACCESS_READ = 1;
+
+    public const ACCESS_CREATE = 2;
+
+    public const ACCESS_UPDATE = 4;
+
+    public const ACCESS_DELETE = 8;
+
+    // User as default can read, create and update something
+    public $access = self::ACCESS_READ | self::ACCESS_CREATE | self::ACCESS_UPDATE;
+}
+
+if ($user->access & User::ACCESS_UPDATE) {
+    // do edit ...
+}
+
+// Deny access rights to create something
+$user->access ^= User::ACCESS_CREATE;
+```
+#### <span style="color:green">Use explanatory variables</span>
+
+**Bad:**
+
+```
+$address = 'One Infinite Loop, Cupertino 95014';
+$cityZipCodeRegex = '/^[^,]+,\s*(.+?)\s*(\d{5})$/';
+preg_match($cityZipCodeRegex, $address, $matches);
+
+saveCityZipCode($matches[1], $matches[2]);
+```
+
+**Good:**
+
+```
+$address = 'One Infinite Loop, Cupertino 95014';
+$cityZipCodeRegex = '/^[^,]+,\s*(?<city>.+?)\s*(?<zipCode>\d{5})$/';
+preg_match($cityZipCodeRegex, $address, $matches);
+
+saveCityZipCode($matches['city'], $matches['zipCode']);
+```
+
+#### <span style="color:green">Avoid nesting if statement</span>
+
+**Bad:**
+
+```
+function fibonacci(int $n)
+{
+    if ($n < 50) {
+        if ($n !== 0) {
+            if ($n !== 1) {
+                return fibonacci($n - 1) + fibonacci($n - 2);
+            }
+            return 1;
+        }
+        return 0;
+    }
+    return 'Not supported';
+}
+```
+
+**Good:**
+
+```
+function fibonacci(int $n): int
+{
+    if ($n === 0 || $n === 1) {
+        return $n;
+    }
+
+    if ($n >= 50) {
+        throw new Exception('Not supported');
+    }
+
+    return fibonacci($n - 1) + fibonacci($n - 2);
+}
+```
+
+#### <span style="color:green">Avoid mental mapping</span>
+
+**Bad:**
+
+```
+$l = ['Austin', 'New York', 'San Francisco'];
+
+for ($i = 0; $i < count($l); $i++) {
+    $li = $l[$i];
+    doStuff();
+    doSomeOtherStuff();
+    // ...
+    // ...
+    // ...
+    // Wait, what is `$li` for again?
+    dispatch($li);
+}
+```
+
+**Good:**
+
+```
+$locations = ['Austin', 'New York', 'San Francisco'];
+
+foreach ($locations as $location) {
+    doStuff();
+    doSomeOtherStuff();
+    // ...
+    // ...
+    // ...
+    dispatch($location);
+```
+
+#### <span style="color:green">Avoid mental mapping</span>
+
+**Bad:**
+
+```
+class Car
+{
+    public $carMake;
+
+    public $carModel;
+
+    public $carColor;
+
+    //...
+}
+```
+
+**Good:**
+
+```
+class Car
+{
+    public $make;
+
+    public $model;
+
+    public $color;
+
+    //...
+}
+```
+
+#### <span style="color:green">Identical Comparison</span>
+
+**Bad:**
+
+The simple comparison will convert the string into an integer.
+
+```
+$a = '42';
+$b = 42;
+
+if ($a != $b) {
+    // The expression will always pass
+}
+```
+
+The comparison ```$a != $b``` returns ```FALSE``` but in fact it's ```TRUE```! The string ```42``` is different than the integer ```42```.
+
+**Good:**
+
+The identical comparison will compare type and value.
+
+```
+$a = '42';
+$b = 42;
+
+if ($a !== $b) {
+    // The expression is verified
+}
+```
+
+The comparison ```$a !== $b``` returns ```TRUE```.
+
+#### <span style="color:green">Null coalescing operator</span>
+
+**Bad:**
+
+```
+if (isset($_GET['name'])) {
+    $name = $_GET['name'];
+} elseif (isset($_POST['name'])) {
+    $name = $_POST['name'];
+} else {
+    $name = 'nobody';
+}
+```
+
+**Good:**
+
+```
+$name = $_GET['name'] ?? $_POST['name'] ?? 'nobody';
+```
+
+#### <span style="color:green">Functions</span>
+
+Use default arguments instead of short circuiting or conditionals
+
+**Not good:**
+
+This is not good because ```$breweryName``` can be ```NULL```.
+
+```
+function createMicrobrewery($breweryName = 'Hipster Brew Co.'): void
+{
+    // ...
+}
+```
+
+**Not bad:**
+
+This opinion is more understandable than the previous version, but it better controls the value of the variable.
+
+```
+function createMicrobrewery($name = null): void
+{
+    $breweryName = $name ?: 'Hipster Brew Co.';
+    // ...
+}
+```
+
+**Good:**
+
+You can use type hinting and be sure that the ```$breweryName``` will not be ```NULL```.
+
+```
+function createMicrobrewery(string $breweryName = 'Hipster Brew Co.'): void
+{
+    // ...
+}
+```
+
+##### **Function arguments (2 or fewer ideally)**
+
+Limiting the amount of function parameters is incredibly important because it makes testing your function easier. Having more than three leads to a combinatorial explosion where you have to test tons of different cases with each separate argument.
+
+Zero arguments is the ideal case. One or two arguments is ok, and three should be avoided. Anything more than that should be consolidated. Usually, if you have more than two arguments then your function is trying to do too much. In cases where it's not, most of the time a higher-level object will suffice as an argument.
+
+**Bad:**
+
+```
+class Questionnaire
+{
+    public function __construct(
+        string $firstname,
+        string $lastname,
+        string $patronymic,
+        string $region,
+        string $district,
+        string $city,
+        string $phone,
+        string $email
+    ) {
+        // ...
+    }
+}
+```
+
+**Good:**
+
+```
+class Name
+{
+    private $firstname;
+
+    private $lastname;
+
+    private $patronymic;
+
+    public function __construct(string $firstname, string $lastname, string $patronymic)
+    {
+        $this->firstname = $firstname;
+        $this->lastname = $lastname;
+        $this->patronymic = $patronymic;
+    }
+
+    // getters ...
+}
+
+class City
+{
+    private $region;
+
+    private $district;
+
+    private $city;
+
+    public function __construct(string $region, string $district, string $city)
+    {
+        $this->region = $region;
+        $this->district = $district;
+        $this->city = $city;
+    }
+
+    // getters ...
+}
+
+class Contact
+{
+    private $phone;
+
+    private $email;
+
+    public function __construct(string $phone, string $email)
+    {
+        $this->phone = $phone;
+        $this->email = $email;
+    }
+
+    // getters ...
+}
+
+class Questionnaire
+{
+    public function __construct(Name $name, City $city, Contact $contact)
+    {
+        // ...
+    }
+}
+```
+
+##### **Function names should say what they do**
+
+**Bad:**
+
+```
+class Email
+{
+    //...
+
+    public function handle(): void
+    {
+        mail($this->to, $this->subject, $this->body);
+    }
+}
+
+$message = new Email(...);
+// What is this? A handle for the message? Are we writing to a file now?
+$message->handle();
+```
+
+**Good:**
+
+```
+class Email
+{
+    //...
+
+    public function send(): void
+    {
+        mail($this->to, $this->subject, $this->body);
+    }
+}
+
+$message = new Email(...);
+// Clear and obvious
+$message->send();
+```
+
+##### **Encapsulate conditionals**
+
+**Bad:**
+
+```
+if ($article->state === 'published') {
+    // ...
+}
+```
+
+**Good:**
+
+```
+if ($article->isPublished()) {
+    // ...
+}
+```
+
+##### **Avoid conditionals**
+
+This seems like an impossible task. Upon first hearing this, most people say, "how am I supposed to do anything without an ```if``` statement?" The answer is that you can use polymorphism to achieve the same task in many cases. The second question is usually, "well that's great but why would I want to do that?" The answer is a previous clean code concept we learned: a function should only do one thing. When you have classes and functions that have ```if``` statements, you are telling your user that your function does more than one thing. Remember, just do one thing.
+
+**Bad:**
+
+```
+class Airplane
+{
+    // ...
+
+    public function getCruisingAltitude(): int
+    {
+        switch ($this->type) {
+            case '777':
+                return $this->getMaxAltitude() - $this->getPassengerCount();
+            case 'Air Force One':
+                return $this->getMaxAltitude();
+            case 'Cessna':
+                return $this->getMaxAltitude() - $this->getFuelExpenditure();
+        }
+    }
+}
+```
+
+**Good:**
+
+```
+interface Airplane
+{
+    // ...
+
+    public function getCruisingAltitude(): int;
+}
+
+class Boeing777 implements Airplane
+{
+    // ...
+
+    public function getCruisingAltitude(): int
+    {
+        return $this->getMaxAltitude() - $this->getPassengerCount();
+    }
+}
+
+class AirForceOne implements Airplane
+{
+    // ...
+
+    public function getCruisingAltitude(): int
+    {
+        return $this->getMaxAltitude();
+    }
+}
+
+class Cessna implements Airplane
+{
+    // ...
+
+    public function getCruisingAltitude(): int
+    {
+        return $this->getMaxAltitude() - $this->getFuelExpenditure();
+    }
+}
+```
+
+##### **Avoid type-checking**
+
+PHP is untyped, which means your functions can take any type of argument. Sometimes you are bitten by this freedom and it becomes tempting to do type-checking in your functions. There are many ways to avoid having to do this. The first thing to consider is consistent APIs.
+
+**Bad:**
+
+```
+function travelToTexas($vehicle): void
+{
+    if ($vehicle instanceof Bicycle) {
+        $vehicle->pedalTo(new Location('texas'));
+    } elseif ($vehicle instanceof Car) {
+        $vehicle->driveTo(new Location('texas'));
+    }
+}
+```
+
+**Good:**
+
+```
+function travelToTexas(Vehicle $vehicle): void
+{
+    $vehicle->travelTo(new Location('texas'));
+}
+```
+
+If you are working with basic primitive values like strings, integers, and arrays, and you use PHP 7+ and you can't use polymorphism but you still feel the need to type-check, you should consider [type declaration](https://www.php.net/manual/en/language.types.declarations.php) or strict mode. It provides you with static typing on top of standard PHP syntax. The problem with manually type-checking is that doing it will require so much extra verbiage that the faux "type-safety" you get doesn't make up for the lost readability. Keep your PHP clean, write good tests, and have good code reviews. Otherwise, do all of that but with PHP strict type declaration or strict mode.
+
+**Bad:**
+
+```
+function combine($val1, $val2): int
+{
+    if (! is_numeric($val1) || ! is_numeric($val2)) {
+        throw new Exception('Must be of type Number');
+    }
+
+    return $val1 + $val2;
+}
+```
+
+**Good:**
+
+```
+function combine(int $val1, int $val2): int
+{
+    return $val1 + $val2;
+}
+```
+
+**Remove dead code**
+
+ead code is just as bad as duplicate code. There's no reason to keep it in your codebase. If it's not being called, get rid of it! It will still be safe in your version history if you still need it.
+
+**Bad:**
+
+```
+function oldRequestModule(string $url): void
+{
+    // ...
+}
+
+function newRequestModule(string $url): void
+{
+    // ...
+}
+
+$request = newRequestModule($requestUrl);
+inventoryTracker('apples', $request, 'www.inventory-awesome.io');
+```
+
+**Good:**
+
+```
+function requestModule(string $url): void
+{
+    // ...
+}
+
+$request = requestModule($requestUrl);
+inventoryTracker('apples', $request, 'www.inventory-awesome.io');
+```
+
+#### <span style="color:green">Object and Data Structures</span>
+
+##### **Use object encapsulation**
+
+In PHP you can set ```public```, ```protected``` and ```private``` keywords for methods. Using it, you can control properties modification on an object.
+
+* When you want to do more beyond getting an object property, you don't have to look up and change every accessor in your codebase.
+* Makes adding validation simple when doing a set.
+* Encapsulates the internal representation.
+* Easy to add logging and error handling when getting and setting.
+* Inheriting this class, you can override default functionality.
+* You can lazy load your object's properties, let's say getting it from a server.
+Additionally, this is part of Open/Closed principle.
+
+**Bad:**
+
+```
+class BankAccount
+{
+    public $balance = 1000;
+}
+
+$bankAccount = new BankAccount();
+
+// Buy shoes...
+$bankAccount->balance -= 100;
+```
+
+**Good:**
+
+```
+class BankAccount
+{
+    private $balance;
+
+    public function __construct(int $balance = 1000)
+    {
+      $this->balance = $balance;
+    }
+
+    public function withdraw(int $amount): void
+    {
+        if ($amount > $this->balance) {
+            throw new \Exception('Amount greater than available balance.');
+        }
+
+        $this->balance -= $amount;
+    }
+
+    public function deposit(int $amount): void
+    {
+        $this->balance += $amount;
+    }
+
+    public function getBalance(): int
+    {
+        return $this->balance;
+    }
+}
+
+$bankAccount = new BankAccount();
+
+// Buy shoes...
+$bankAccount->withdraw($shoesPrice);
+
+// Get balance
+$balance = $bankAccount->getBalance();
+```
+
+##### **Make objects have private/protected members**
+
+* ```public``` methods and properties are most dangerous for changes, because some outside code may easily rely on them and you can't control what code relies on them. **Modifications in class are dangerous for all users of class**.
+* ```protected``` modifier are as dangerous as public, because they are available in scope of any child class. This effectively means that difference between public and protected is only in access mechanism, but encapsulation guarantee remains the same. Modifications in class are dangerous for all descendant classes.
+* ```private``` modifier guarantees that code is dangerous to modify only in boundaries of single class.
+Therefore, use private by default and public/protected when you need to provide access for external classes.
