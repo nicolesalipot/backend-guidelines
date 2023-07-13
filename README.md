@@ -6,6 +6,7 @@
     * [Principles](#principle)
         *  [SOLID](#solid)
         *  [Don't Repeat Yourself (DRY)](#dont-repeat-yourself-dry)
+        *  [KISS (Keep It Simple, Stupid)](#kiss-keep-it-simple-stupid)
     * [PSR-12: Extended Coding Style](#psr-12-extended-coding-style)
     * [Do's and Dont's](#dos-and-donts)
 *  [Laravel ](#laravel)
@@ -540,6 +541,14 @@ function showList(array $employees): void
     }
 }
 ```
+
+## KISS (Keep it Simple, Stupid)
+
+The **KISS principle** is also a fundamental guideline in software engineering that emphasizes simplicity in design and implementation. It advocates for avoiding unnecessary complexity and striving for straightforward solutions. Adopting the **KISS principle** can significantly benefit software development projects in the following ways:
+
+Enhanced Understanding: Simple code is easier to understand. When software is designed with simplicity in mind, developers can quickly grasp its logic and functionality.
+
+Improved Maintainability: Complex code tends to be difficult to maintain over time. With each added layer of complexity, the probability of introducing bugs or unintended side effects increases. On the other hand, adhering to the KISS principle ensures that code remains manageable and maintainable, even as the project evolves.
 
 # PSR-12: Extended Coding Style
 
