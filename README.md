@@ -8,10 +8,10 @@
         *  [Don't Repeat Yourself (DRY)](#dont-repeat-yourself-dry)
     * [PSR-12: Extended Coding Style](#psr-12-extended-coding-style)
     * [Do's and Dont's](#dos-and-donts)
+*  [Laravel ](#laravel)
 *  **Testing**
 *  **Git**
 *  **Microservice**
-*  **Laravel**
 *  **Typescript <span style="color:red">(Coming Soon!)</span>.**
 *  **Onboarding**
 
@@ -2033,4 +2033,468 @@ class Employee
 
     // ...
 }
+```
+
+# Laravel
+
+
+**Single responsibility principle**
+
+A class and a method should have only one responsibility.
+
+**Bad:**
+
+```
+public function getFullNameAttribute(): string
+{
+    if (auth()->user() && auth()->user()->hasRole('client') && auth()->user()->isVerified()) {
+        return 'Mr. ' . $this->first_name . ' ' . $this->middle_name . ' ' . $this->last_name;
+    } else {
+        return $this->first_name[0] . '. ' . $this->last_name;
+    }
+}
+```
+
+**Good:**
+
+```
+public function getFullNameAttribute(): string
+{
+    return $this->isVerifiedClient() ? $this->getFullNameLong() : $this->getFullNameShort();
+}
+
+public function isVerifiedClient(): bool
+{
+    return auth()->user() && auth()->user()->hasRole('client') && auth()->user()->isVerified();
+}
+
+public function getFullNameLong(): string
+{
+    return 'Mr. ' . $this->first_name . ' ' . $this->middle_name . ' ' . $this->last_name;
+}
+
+public function getFullNameShort(): string
+{
+    return $this->first_name[0] . '. ' . $this->last_name;
+}
+```
+
+**Fat models, skinny controllers**
+
+Put all DB related logic into Eloquent models.
+
+**Bad:**
+
+```
+public function index()
+{
+    $clients = Client::verified()
+        ->with(['orders' => function ($q) {
+            $q->where('created_at', '>', Carbon::today()->subWeek());
+        }])
+        ->get();
+
+    return view('index', ['clients' => $clients]);
+}
+```
+
+**Good:**
+
+```
+public function index()
+{
+    return view('index', ['clients' => $this->client->getWithNewOrders()]);
+}
+
+class Client extends Model
+{
+    public function getWithNewOrders(): Collection
+    {
+        return $this->verified()
+            ->with(['orders' => function ($q) {
+                $q->where('created_at', '>', Carbon::today()->subWeek());
+            }])
+            ->get();
+    }
+}
+```
+
+**Validation**
+
+**Bad:**
+
+Move validation from controllers to Request classes.
+
+```
+public function store(Request $request)
+{
+    $request->validate([
+        'title' => 'required|unique:posts|max:255',
+        'body' => 'required',
+        'publish_at' => 'nullable|date',
+    ]);
+
+    ...
+}
+```
+
+**Good:**
+
+```
+public function store(PostRequest $request)
+{
+    ...
+}
+
+class PostRequest extends Request
+{
+    public function rules(): array
+    {
+        return [
+            'title' => 'required|unique:posts|max:255',
+            'body' => 'required',
+            'publish_at' => 'nullable|date',
+        ];
+    }
+}
+```
+
+**Business logic should be in service class**
+
+A controller must have only one responsibility, so move business logic from controllers to service classes.
+
+**Bad:**
+
+```
+public function store(Request $request)
+{
+    if ($request->hasFile('image')) {
+        $request->file('image')->move(public_path('images') . 'temp');
+    }
+
+    ...
+}
+```
+
+**Good:**
+
+```
+public function store(Request $request)
+{
+    $this->articleService->handleUploadedImage($request->file('image'));
+
+    ...
+}
+
+class ArticleService
+{
+    public function handleUploadedImage($image): void
+    {
+        if (!is_null($image)) {
+            $image->move(public_path('images') . 'temp');
+        }
+    }
+}
+```
+
+**Don't repeat yourself (DRY)**
+
+Reuse code when you can. SRP is helping you to avoid duplication. Also, reuse Blade templates, use Eloquent scopes etc.
+
+**Bad:**
+
+```
+public function getActive()
+{
+    return $this->where('verified', 1)->whereNotNull('deleted_at')->get();
+}
+
+public function getArticles()
+{
+    return $this->whereHas('user', function ($q) {
+            $q->where('verified', 1)->whereNotNull('deleted_at');
+        })->get();
+}
+```
+
+**Good:**
+
+```
+public function scopeActive($q)
+{
+    return $q->where('verified', true)->whereNotNull('deleted_at');
+}
+
+public function getActive(): Collection
+{
+    return $this->active()->get();
+}
+
+public function getArticles(): Collection
+{
+    return $this->whereHas('user', function ($q) {
+            $q->active();
+        })->get();
+}
+```
+
+**Prefer to use Eloquent over using Query Builder and raw SQL queries. Prefer collections over arrays**
+
+Eloquent allows you to write readable and maintainable code. Also, Eloquent has great built-in tools like soft deletes, events, scopes etc.
+
+**Bad:**
+
+```
+SELECT *
+FROM `articles`
+WHERE EXISTS (SELECT *
+              FROM `users`
+              WHERE `articles`.`user_id` = `users`.`id`
+              AND EXISTS (SELECT *
+                          FROM `profiles`
+                          WHERE `profiles`.`user_id` = `users`.`id`)
+              AND `users`.`deleted_at` IS NULL)
+AND `verified` = '1'
+AND `active` = '1'
+ORDER BY `created_at` DESC
+```
+
+**Good:**
+
+```
+Article::has('user.profile')->verified()->latest()->get();
+```
+
+**Mass assignment**
+
+**Bad:**
+
+```
+$article = new Article;
+$article->title = $request->title;
+$article->content = $request->content;
+$article->verified = $request->verified;
+
+// Add category to article
+$article->category_id = $category->id;
+$article->save();
+```
+
+**Good:**
+
+```
+$category->article()->create($request->validated());
+```
+
+**Chunk data for data-heavy tasks**
+
+**Bad:**
+
+```
+$users = $this->get();
+
+foreach ($users as $user) {
+    ...
+}
+```
+
+**Good:**
+
+```
+$this->chunk(500, function ($users) {
+    foreach ($users as $user) {
+        ...
+    }
+});
+```
+
+**Prefer descriptive method and variable names over comments**
+
+**Bad:**
+
+```
+// Determine if there are any joins
+if (count((array) $builder->getQuery()->joins) > 0)
+```
+
+**Good:**
+
+```
+if ($this->hasJoins())
+```
+
+**Use config and language files, constants instead of text in the code**
+
+**Bad:**
+
+```
+public function isNormal(): bool
+{
+    return $article->type === 'normal';
+}
+
+return back()->with('message', 'Your article has been added!');
+```
+
+**Good:**
+
+```
+public function isNormal()
+{
+    return $article->type === Article::TYPE_NORMAL;
+}
+
+return back()->with('message', __('app.article_added'));
+```
+
+**Follow Laravel naming conventions**
+
+Follow [PSR standards](https://www.php-fig.org/psr/psr-12/).
+
+Also, follow naming conventions accepted by Laravel community:
+
+What | How | Good | Bad
+------------ | ------------- | ------------- | -------------
+Controller | singular | ArticleController | ~~ArticlesController~~
+Route | plural | articles/1 | ~~article/1~~
+Route name | snake_case with dot notation | users.show_active | ~~users.show-active, show-active-users~~
+Model | singular | User | ~~Users~~
+hasOne or belongsTo relationship | singular | articleComment | ~~articleComments, article_comment~~
+All other relationships | plural | articleComments | ~~articleComment, article_comments~~
+Table | plural | article_comments | ~~article_comment, articleComments~~
+Pivot table | singular model names in alphabetical order | article_user | ~~user_article, articles_users~~
+Table column | snake_case without model name | meta_title | ~~MetaTitle; article_meta_title~~
+Model property | snake_case | $model->created_at | ~~$model->createdAt~~
+Foreign key | singular model name with _id suffix | article_id | ~~ArticleId, id_article, articles_id~~
+Primary key | - | id | ~~custom_id~~
+Migration | - | 2017_01_01_000000_create_articles_table | ~~2017_01_01_000000_articles~~
+Method | camelCase | getAll | ~~get_all~~
+Method in resource controller | [table](https://laravel.com/docs/master/controllers#resource-controllers) | store | ~~saveArticle~~
+Method in test class | camelCase | testGuestCannotSeeArticle | ~~test_guest_cannot_see_article~~
+Variable | camelCase | $articlesWithAuthor | ~~$articles_with_author~~
+Collection | descriptive, plural | $activeUsers = User::active()->get() | ~~$active, $data~~
+Object | descriptive, singular | $activeUser = User::active()->first() | ~~$users, $obj~~
+Config and language files index | snake_case | articles_enabled | ~~ArticlesEnabled; articles-enabled~~
+View | kebab-case | show-filtered.blade.php | ~~showFiltered.blade.php, show_filtered.blade.php~~
+Config | snake_case | google_calendar.php | ~~googleCalendar.php, google-calendar.php~~
+Contract (interface) | adjective or noun | AuthenticationInterface | ~~Authenticatable, IAuthentication~~
+Trait | adjective | Notifiable | ~~NotificationTrait~~
+Trait [(PSR)](https://www.php-fig.org/bylaws/psr-naming-conventions/) | adjective | NotifiableTrait | ~~Notification~~
+Enum | singular | UserType | ~~UserTypes~~, ~~UserTypeEnum~~
+FormRequest | singular | UpdateUserRequest | ~~UpdateUserFormRequest~~, ~~UserFormRequest~~, ~~UserRequest~~
+Seeder | singular | UserSeeder | ~~UsersSeeder~~
+
+**Use shorter and more readable syntax where possible**
+
+### **Use shorter and more readable syntax where possible**
+
+Bad:
+
+```php
+$request->session()->get('cart');
+$request->input('name');
+```
+
+Good:
+
+```php
+session('cart');
+$request->name;
+```
+
+More examples:
+
+Common syntax | Shorter and more readable syntax
+------------ | -------------
+`$request->input('name'), Request::get('name')` | `$request->name, request('name')`
+`return Redirect::back()` | `return back()`
+`is_null($object->relation) ? null : $object->relation->id` | `optional($object->relation)->id` (in PHP 8: `$object->relation?->id`)
+`$request->has('value') ? $request->value : 'default';` | `$request->get('value', 'default')`
+`Carbon::now(), Carbon::today()` | `now(), today()`
+`App::make('Class')` | `app('Class')`
+`->where('column', '=', 1)` | `->where('column', 1)`
+`->orderBy('created_at', 'desc')` | `->latest()`
+`->orderBy('age', 'desc')` | `->latest('age')`
+`->orderBy('created_at', 'asc')` | `->oldest()`
+`->select('id', 'name')->get()` | `->get(['id', 'name'])`
+`->first()->name` | `->value('name')`
+
+**Use IoC / Service container instead of new Class**
+
+new Class syntax creates tight coupling between classes and complicates testing. Use IoC container or facades instead.
+
+**Bad:**
+
+```
+$user = new User;
+$user->create($request->validated());
+```
+
+**Good:**
+
+```
+public function __construct(User $user)
+{
+    $this->user = $user;
+}
+
+...
+
+$this->user->create($request->validated());
+```
+
+**Do not get data from the ```.env``` file directly**
+
+**Bad:**
+
+```
+$apiKey = env('API_KEY');
+```
+
+**Good:**
+
+```
+// config/api.php
+'key' => env('API_KEY'),
+
+// Use the data
+$apiKey = config('api.key');
+```
+
+**Store dates in the standard format. Use accessors and mutators to modify date format**
+
+A date as a string is less reliable than an object instance, e.g. a Carbon-instance. It's recommended to pass Carbon objects between classes instead of date strings. Rendering should be done in the display layer (templates):
+
+**Bad:**
+
+```
+{{ Carbon::createFromFormat('Y-d-m H-i', $object->ordered_at)->toDateString() }}
+{{ Carbon::createFromFormat('Y-d-m H-i', $object->ordered_at)->format('m-d') }}
+```
+
+
+**Good:**
+
+```
+// Model
+protected $casts = [
+    'ordered_at' => 'datetime',
+];
+
+{{ $object->ordered_at->toDateString() }}
+{{ $object->ordered_at->format('m-d') }}
+```
+
+**Other good practices**
+
+```
+Never put any logic in routes files.
+
+Minimize usage of vanilla PHP.
+
+Use in-memory DB for testing.
+
+Do not override standard framework features to avoid problems related to updating the framework version and many other issues.
+
+Use modern PHP syntax where possible, but don't forget about readability.
 ```
