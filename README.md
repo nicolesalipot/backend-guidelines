@@ -9,12 +9,12 @@
         *  [KISS (Keep It Simple, Stupid)](#kiss-keep-it-simple-stupid)
     * [PSR-12: Extended Coding Style](#psr-12-extended-coding-style)
     * [Do's and Dont's](#dos-and-donts)
-*  [Laravel ](#laravel)
-*  **Testing**
-*  **Git**
+*  [Laravel](#laravel)
+*  [Testing](#testing)
+*  [Version Control (Git) ](#version-control-git)
+*  [Postman API Documentation](#postman-api-documentation)
 *  **Microservice**
 *  **Typescript <span style="color:red">(Coming Soon!)</span>.**
-*  **Onboarding**
 
 # Principles
 
@@ -2507,3 +2507,169 @@ Do not override standard framework features to avoid problems related to updatin
 
 Use modern PHP syntax where possible, but don't forget about readability.
 ```
+
+# Testing
+
+**Writing Assertions**
+
+Assertions are statements that verify that the code you are testing behaved as expected. In Laravel, you can use PHPUnit’s assertion methods to write assertions.
+
+For example, if we have a function ```add``` that adds two numbers together, we can write an assertion to verify that the function returns the correct value:
+
+```
+public function testAdd()
+{
+$calculator = new Calculator();
+$result = $calculator->add(2, 3);
+$this->assertEquals(5, $result);
+}
+```
+
+In this example, we create an instance of the ```Calculator``` class, call the ```add``` function with the parameters ```2``` and ```3```, and use the ```assertEquals``` method to verify that the result is ```5```.
+
+**Make use of factories to help you with fake data and tests**
+
+You can create one using the ```php artisan make:factory PostFactory``` command and add random fake data to every column like so:
+
+```
+namespace Database\Factories;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class PostFactory extends Factory
+{
+    public function definition() : array
+    {
+        return [
+            'user_id' => User::factory(),
+            'title' => fake()->sentence(),
+            'slug' => fake()->slug(),
+            'content' => fake()->paragraphs(5, true),
+            'description' => fake()->paragraph(),
+        ];
+    }
+}
+```
+
+Factories create all the resources you need when writing tests.
+
+Here’s one in action:
+
+```
+public function test_it_shows_a_given_post()
+{
+    $post = Post::factory()->create();
+
+    $this
+        ->get(route('posts.show', $post))
+        ->assertOk();
+}
+```
+
+**Don’t waste API calls, use mocks**
+
+In Laravel, mocks can be used to avoid wasting API calls while testing and being hit with rate limit errors.
+
+Let’s say we are working on a project using Twitter’s API.
+
+In our container, we have a ```Client``` class used to call it.
+
+While running our test suite, we want to avoid unecessary calls to the real thing and the best way to do it is to swap our client in the container by a mock.
+
+```
+$mock = $this->mock(Client::class);
+
+$mock
+    ->shouldReceive('getTweet')
+    ->with('Some tweet ID')
+    ->andReturn([
+        'data' => [
+            'author_id' => '2244994945',
+            'created_at' => '2022-12-11T10:00:55.000Z',
+            'id' => '1228393702244134912',
+            'edit_history_tweet_ids' => ['1228393702244134912'],
+            'text' => 'This is a tweet',
+        ],
+    ]);
+```
+
+**Prevent stray HTTP requests to identify slow tests**
+
+If you want to make sure that all HTTP requests made during your tests are fake, you can use the ```preventStrayRequests()``` method.
+
+It will cause an exception to be thrown if any HTTP requests that do not have a corresponding fake response is executed.
+
+You can use this method in an individual test or for your entire test suite.
+
+```
+Http::preventStrayRequests();
+```
+
+**Don’t track your .env file**
+
+This best practice may be obvious for certain people, but I think it’s worth mentionning anyway.
+
+Your .env file contains sensitive informations.
+
+Please, don’t track it!
+
+Make sure it’s included in your ```.gitignore```.
+
+And if at some point in the history you tracked it, make sure nobody having access to the Git history can use the credentials that were in it. Change them!
+
+Best Practices
+
+**When writing unit tests in Laravel**, there are a few best practices you should keep in mind:
+
+Test only one thing at a time: Each test should focus on testing a single method or feature. This makes it easier to isolate and fix issues when they arise.
+
+Use meaningful test names: Use descriptive names for your tests that make it clear what the test is testing.
+
+Write tests first: Writing tests first can help you design your code to be more testable and prevent you from writing code that is hard to test.
+
+Test edge cases: Make sure to test edge cases, such as empty inputs or maximum input values, to ensure that your code works correctly in all scenarios.
+
+By following these best practices, you can ensure that your unit tests are effective and reliable, and help prevent issues from arising in production.
+
+**Tips**
+
+**Tip 1: Understand the Testing Framework:** Before diving into writing tests, it's essential to understand the testing framework provided by Laravel. Familiarize yourself with PHPUnit, the de facto testing tool for Laravel applications. Learn about its syntax, assertions, and various testing methods available to you. Laravel's testing framework provides a robust set of features that can simplify your testing workflow.
+
+**Tip 2: Leverage Testing Helpers:** Laravel offers a range of testing helpers that can streamline your test-writing process. Make use of these helpers to create test cases, interact with application components, and assert expected outcomes. Some commonly used helpers include actingAs(), get(), post(), assertDatabaseHas(), and assertStatus(). Explore the Laravel documentation to discover more helpers that suit your testing needs.
+
+**Tip 3: Use Factories and Seeders:** Creating test data can be time-consuming and repetitive. Laravel's factories and seeders can be a lifesaver in such scenarios. Use factories to generate dummy data for your models, making it easier to populate your database during tests. Additionally, seeders allow you to set up test data quickly. By leveraging these Laravel features, you can save time and maintain consistent test data across your test suite.
+
+**Tip 4: Practice Test-Driven Development (TDD):** Test-Driven Development (TDD) is a powerful approach to software development that involves writing tests before writing the actual code. TDD promotes a more structured development process and ensures that your codebase remains testable and maintainable. By following TDD principles, you can identify potential issues early on and have a reliable set of tests to validate your code.
+
+**Tip 5: Test Different Scenarios:** When writing tests, it's important to cover different scenarios to ensure comprehensive test coverage. Test both expected and unexpected inputs, edge cases, and error handling. Consider scenarios such as validation failures, authentication and authorization checks, and API responses. By testing a wide range of scenarios, you can uncover bugs and vulnerabilities before they impact your users.
+
+**Tip 6: Mock External Dependencies:** To isolate your tests and make them independent of external services or APIs, it's crucial to mock those dependencies. Laravel provides convenient mocking features through the use of Mockery or PHPUnit's built-in mocking methods. By mocking external dependencies, you can focus on testing specific units of code without worrying about the behavior of external systems.
+
+# Version Control (Git)
+
+If the repo concerns something else, for example a package, its name should be kebab-cased.
+
+Bad:``` LaravelBackup```, ```Spoon```
+Good: ```laravel-backup```, ```spoon```
+
+**Branches**
+
+**Once a project has gone live, the main branch must always be stable**. It should be safe to deploy the main branch to production at all times. All branches are assumed to be active; stale branches should get cleaned up accordingly.
+
+**PROJECTS IN INITIAL DEVELOPMENT**
+
+Projects that aren't live yet have at least two branches: ```main``` and ```develop```. Avoid committing directly on the main branch, always commit through develop.
+
+Feature branches are optional, if you'd like to create a feature branch, make sure it's branched from ```develop```, not ```main```.
+
+# Postman API Documentation
+
+* Create a separate collection for each API: This allows for better organization and makes it easier for developers to find specific endpoints.
+*  Use folders and subfolders: Group related endpoints together using folders and subfolders within your collections. This logical hierarchy makes navigation more intuitive.
+* Utilize naming conventions: Use descriptive names for collections, folders, and endpoints to provide clear context to developers.
+* Document Requests and Responses: Comprehensive documentation should include detailed information about the requests and responses for each API endpoint. Postman offers several ways to document this crucial information.
+ * Add comments and descriptions: In each request, utilize the available comment fields to provide additional context, explain request parameters, and describe the expected response structure.
+ * Include sample requests and responses: Postman allows you to include examples of requests and responses, which can be immensely helpful for developers who are new to your API.
+ * Provide data models: If your API deals with complex data structures, consider using Postman’s data modeling feature to define and visualize the structure of your request and response payloads.
+ *  Enable documentation updates from collections: With Postman, you can sync changes made to your collections directly to your documentation page, saving time and effort when updating your API documentation.
